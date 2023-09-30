@@ -34,6 +34,7 @@ import { logger } from './logger';
  */
 export class Consumer extends TypedEventEmitter {
   private pollingTimeoutId: NodeJS.Timeout | undefined = undefined;
+  private currentConcurrentExecutions = 0;
   private stopped = true;
   private queueUrl: string;
   private handleMessage: (message: Message) => Promise<Message | void>;
@@ -50,6 +51,8 @@ export class Consumer extends TypedEventEmitter {
   private authenticationErrorTimeout: number;
   private pollingWaitTimeMs: number;
   private heartbeatInterval: number;
+  private concurrency: number;
+  private maxConcurrencyTimeout: number;
 
   constructor(options: ConsumerOptions) {
     super();
@@ -75,6 +78,8 @@ export class Consumer extends TypedEventEmitter {
       new SQSClient({
         region: options.region || process.env.AWS_REGION || 'eu-west-1'
       });
+    this.concurrency = options.concurrency || 1;
+    this.maxConcurrencyTimeout = options.maxConcurrencyTimeout || 1000;
     autoBind(this);
   }
 
@@ -173,7 +178,7 @@ export class Consumer extends TypedEventEmitter {
   /**
    * Poll for new messages from SQS
    */
-  private poll(): void {
+  private async poll(): Promise<void> {
     if (this.stopped) {
       logger.debug('cancelling_poll', {
         detail: 'Poll was called while consumer was stopped, cancelling poll...'
@@ -184,16 +189,18 @@ export class Consumer extends TypedEventEmitter {
     logger.debug('polling');
 
     let currentPollingTimeout = this.pollingWaitTimeMs;
-    this.receiveMessage({
-      QueueUrl: this.queueUrl,
-      AttributeNames: this.attributeNames,
-      MessageAttributeNames: this.messageAttributeNames,
-      MaxNumberOfMessages: this.batchSize,
-      WaitTimeSeconds: this.waitTimeSeconds,
-      VisibilityTimeout: this.visibilityTimeout
-    })
-      .then(this.handleSqsResponse)
-      .catch((err) => {
+
+    if (this.currentConcurrentExecutions < this.concurrency){
+      const sqsResponse = await this.receiveMessage({
+        QueueUrl: this.queueUrl,
+        AttributeNames: this.attributeNames,
+        MessageAttributeNames: this.messageAttributeNames,
+        MaxNumberOfMessages: this.batchSize,
+        WaitTimeSeconds: this.waitTimeSeconds,
+        VisibilityTimeout: this.visibilityTimeout
+      });
+      this.currentConcurrentExecutions += 1;
+      this.handleSqsResponse(sqsResponse).then().catch((err) => {
         this.emitError(err);
         if (isConnectionError(err)) {
           logger.debug('authentication_error', {
@@ -203,16 +210,17 @@ export class Consumer extends TypedEventEmitter {
           currentPollingTimeout = this.authenticationErrorTimeout;
         }
         return;
-      })
-      .then(() => {
-        if (this.pollingTimeoutId) {
-          clearTimeout(this.pollingTimeoutId);
-        }
-        this.pollingTimeoutId = setTimeout(this.poll, currentPollingTimeout);
-      })
-      .catch((err) => {
-        this.emitError(err);
+      }).finally(() => {
+        this.currentConcurrentExecutions -= 1;
       });
+    }
+    if (this.currentConcurrentExecutions >= this.concurrency && !currentPollingTimeout){
+      currentPollingTimeout = this.maxConcurrencyTimeout;
+    }
+    if (this.pollingTimeoutId) {
+      clearTimeout(this.pollingTimeoutId);
+    }
+    this.pollingTimeoutId = setTimeout(this.poll, currentPollingTimeout);
   }
 
   /**

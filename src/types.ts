@@ -84,6 +84,17 @@ export interface ConsumerOptions {
    * @defaultvalue `true`
    */
   shouldDeleteMessages?: boolean;
+
+  /**
+   * Maximum number of concurrent executions of handleMessage or handleMessageBatch function
+   */
+  concurrency: number;
+
+  /**
+   * polling timeout in milliseconds when maximum concurrency is reached
+   */
+  maxConcurrencyTimeout: number;
+
   /**
    * An `async` function (or function that returns a `Promise`) to be called whenever
    * a message is received.

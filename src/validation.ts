@@ -45,6 +45,16 @@ function validateOption(
         throw new Error('waitTimeSeconds must be between 0 and 20.');
       }
       break;
+    case 'concurrency':
+      if (value < 1) {
+        throw new Error('concurrency must be greater than or equal to 1');
+      }
+      break;
+    case 'maxConcurrencyTimeout':
+      if (value < 100) {
+        throw new Error('maxConcurrencyTimeout must be greater than or equal to 100');
+      }
+      break;
     default:
       if (strict) {
         throw new Error(`The update ${option} cannot be updated`);
@@ -72,6 +82,12 @@ function assertOptions(options: ConsumerOptions): void {
   }
   if (options.heartbeatInterval) {
     validateOption('heartbeatInterval', options.heartbeatInterval, options);
+  }
+  if (options.concurrency) {
+    validateOption('concurrency', options.concurrency, options);
+  }
+  if (options.maxConcurrencyTimeout) {
+    validateOption('maxConcurrencyTimeout', options.maxConcurrencyTimeout, options);
   }
 }
 
