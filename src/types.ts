@@ -88,12 +88,12 @@ export interface ConsumerOptions {
   /**
    * Maximum number of concurrent executions of handleMessage or handleMessageBatch function
    */
-  concurrency: number;
+  concurrency?: number;
 
   /**
    * polling timeout in milliseconds when maximum concurrency is reached
    */
-  maxConcurrencyTimeout: number;
+  maxConcurrencyTimeout?: number;
 
   /**
    * An `async` function (or function that returns a `Promise`) to be called whenever

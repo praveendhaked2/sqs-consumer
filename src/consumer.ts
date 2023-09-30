@@ -79,7 +79,7 @@ export class Consumer extends TypedEventEmitter {
         region: options.region || process.env.AWS_REGION || 'eu-west-1'
       });
     this.concurrency = options.concurrency || 1;
-    this.maxConcurrencyTimeout = options.maxConcurrencyTimeout || 1000;
+    this.maxConcurrencyTimeout = options.maxConcurrencyTimeout || 100;
     autoBind(this);
   }
 
@@ -176,6 +176,18 @@ export class Consumer extends TypedEventEmitter {
   };
 
   /**
+   * Schedule next polling
+   * @param timeout
+   * @private
+   */
+  private schedulePolling(timeout){
+    if (this.pollingTimeoutId) {
+      clearTimeout(this.pollingTimeoutId);
+    }
+    this.pollingTimeoutId = setTimeout(this.poll, timeout);
+  }
+
+  /**
    * Poll for new messages from SQS
    */
   private async poll(): Promise<void> {
@@ -186,41 +198,54 @@ export class Consumer extends TypedEventEmitter {
       return;
     }
 
-    logger.debug('polling');
-
     let currentPollingTimeout = this.pollingWaitTimeMs;
 
-    if (this.currentConcurrentExecutions < this.concurrency){
-      const sqsResponse = await this.receiveMessage({
-        QueueUrl: this.queueUrl,
-        AttributeNames: this.attributeNames,
-        MessageAttributeNames: this.messageAttributeNames,
-        MaxNumberOfMessages: this.batchSize,
-        WaitTimeSeconds: this.waitTimeSeconds,
-        VisibilityTimeout: this.visibilityTimeout
-      });
-      this.currentConcurrentExecutions += 1;
-      this.handleSqsResponse(sqsResponse).then().catch((err) => {
+    if (this.currentConcurrentExecutions <= this.concurrency){
+      if (this.currentConcurrentExecutions === this.concurrency){
+        return this.schedulePolling(this.maxConcurrencyTimeout);
+      }
+      logger.debug('polling');
+      let sqsResponse;
+      try {
+        sqsResponse = await this.receiveMessage({
+          QueueUrl: this.queueUrl,
+          AttributeNames: this.attributeNames,
+          MessageAttributeNames: this.messageAttributeNames,
+          MaxNumberOfMessages: this.batchSize,
+          WaitTimeSeconds: this.waitTimeSeconds,
+          VisibilityTimeout: this.visibilityTimeout
+        });
+      }catch (err) {
         this.emitError(err);
         if (isConnectionError(err)) {
           logger.debug('authentication_error', {
             detail:
-              'There was an authentication error. Pausing before retrying.'
+                'There was an authentication error. Pausing before retrying.'
           });
           currentPollingTimeout = this.authenticationErrorTimeout;
         }
-        return;
-      }).finally(() => {
-        this.currentConcurrentExecutions -= 1;
-      });
+      }
+      if (sqsResponse) {
+        this.currentConcurrentExecutions += 1;
+        this.handleSqsResponse(sqsResponse).catch((err) => {
+          this.emitError(err);
+          if (isConnectionError(err)) {
+            logger.debug('authentication_error', {
+              detail:
+                  'There was an authentication error. Pausing before retrying.'
+            });
+            currentPollingTimeout = this.authenticationErrorTimeout;
+          }
+          return;
+        }).finally(() => {
+          this.currentConcurrentExecutions -= 1;
+        });
+      }
     }
-    if (this.currentConcurrentExecutions >= this.concurrency && !currentPollingTimeout){
-      currentPollingTimeout = this.maxConcurrencyTimeout;
+    if (this.currentConcurrentExecutions > this.concurrency){
+      return this.schedulePolling(this.maxConcurrencyTimeout);
     }
-    if (this.pollingTimeoutId) {
-      clearTimeout(this.pollingTimeoutId);
-    }
-    this.pollingTimeoutId = setTimeout(this.poll, currentPollingTimeout);
+    return this.schedulePolling(currentPollingTimeout);
   }
 
   /**

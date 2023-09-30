@@ -1500,7 +1500,7 @@ describe('Consumer', () => {
       sandbox.assert.calledOnce(clearIntervalSpy);
       consumer.stop();
 
-      sandbox.assert.callCount(loggerDebug, 15);
+      sandbox.assert.callCount(loggerDebug, 16);
       sandbox.assert.calledWith(loggerDebug, 'handler_processing', {
         detail: 'The handler is still processing the message(s)...'
       });
