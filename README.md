@@ -1,35 +1,23 @@
-# sqs-consumer
+# sqs-consumer-concurrent
 
-[![NPM downloads](https://img.shields.io/npm/dm/sqs-consumer.svg?style=flat)](https://npmjs.org/package/sqs-consumer)
-[![Build Status](https://github.com/bbc/sqs-consumer/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/bbc/sqs-consumer/actions/workflows/test.yml)
-[![Maintainability](https://api.codeclimate.com/v1/badges/16ec3f59e73bc898b7ff/maintainability)](https://codeclimate.com/github/bbc/sqs-consumer/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/16ec3f59e73bc898b7ff/test_coverage)](https://codeclimate.com/github/bbc/sqs-consumer/test_coverage)
-
-Build SQS-based applications without the boilerplate. Just define an async function that handles the SQS message processing.
+Build SQS-based applications without the boilerplate. Just define an async function that handles the SQS message processing. This repository is just an adding of concurrency in the respository [sqs-consumer](https://www.npmjs.com/package/sqs-consumer).
 
 ## Installation
 
 To install this package, simply enter the following command into your terminal (or the variant of whatever package manager you are using):
 
 ```bash
-npm install sqs-consumer
+npm install @praveendhaked/sqs-consumer-concurrent
 ```
-
-> **Note**
-> This library assumes you are using [AWS SDK v3](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/index.html). If you are using v2, please install v5.8.0:
->
-> ```bash
-> npm install sqs-consumer@5.8.0
-> ```
 
 ### Node version
 
-We will only support Node versions that are actively or security supported by the Node team. If you are still using an Node 14, please use a version of this library before the v7 release, if you are using Node 16, please use a version before the v7.3.0 release.
+We will only support Node versions that are actively or security supported by the Node team.
 
 ## Usage
 
 ```js
-import { Consumer } from 'sqs-consumer';
+import { Consumer } from '@praveendhaked/sqs-consumer-concurrent';
 
 const app = Consumer.create({
   queueUrl: 'https://sqs.eu-west-1.amazonaws.com/account-id/queue-name',
@@ -67,7 +55,7 @@ export AWS_ACCESS_KEY_ID=...
 If you need to specify your credentials manually, you can use a pre-configured instance of the [SQS Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-sqs/classes/sqsclient.html) client.
 
 ```js
-import { Consumer } from 'sqs-consumer';
+import { Consumer } from '@praveendhaked/sqs-consumer-concurrent';
 import { SQSClient } from '@aws-sdk/client-sqs';
 
 const app = Consumer.create({

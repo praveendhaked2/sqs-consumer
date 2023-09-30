@@ -1,11 +1,14 @@
 {
-  "name": "sqs-consumer",
-  "version": "7.3.0",
+  "name": "@praveendhaked/sqs-consumer-concurrent",
+  "version": "1.0.0",
   "description": "Build SQS-based Node applications without the boilerplate",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "npm run clean && tsc",
@@ -28,16 +31,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bbc/sqs-consumer.git"
+    "url": "https://github.com/praveendhaked2/sqs-consumer"
   },
   "bugs": {
-    "url": "https://github.com/bbc/sqs-consumer/issues"
+    "url": "https://github.com/praveendhaked2/sqs-consumer/issues"
   },
-  "homepage": "https://bbc.github.io/sqs-consumer/",
+  "homepage": "https://github.com/praveendhaked2/sqs-consumer",
   "keywords": [
     "sqs",
     "queue",
-    "consumer"
+    "consumer",
+    "concurrent"
   ],
   "license": "Apache-2.0",
   "devDependencies": {
