@@ -395,6 +395,7 @@ export class Consumer extends TypedEventEmitter {
     timeout: number
   ): Promise<ChangeMessageVisibilityCommandOutput> {
     try {
+      logger.debug(`Changing visibility timeout for ${timeout} seconds for message`, message);
       const input: ChangeMessageVisibilityCommandInput = {
         QueueUrl: this.queueUrl,
         ReceiptHandle: message.ReceiptHandle,
