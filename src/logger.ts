@@ -1,5 +1,7 @@
-const debug = require('debug')('sqs-consumer');
+const winston = require('winston');
 
-export const logger = {
-  debug
-};
+export const logger = winston.createLogger({
+  transports: [
+    new winston.transports.Console(),
+  ]
+}).child({module: 'sqs-consumer'});
